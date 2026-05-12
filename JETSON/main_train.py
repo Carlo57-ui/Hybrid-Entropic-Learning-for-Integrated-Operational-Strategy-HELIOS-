@@ -14,11 +14,9 @@ from controllers.controller_teb import TEBController
 from entropy_combiner import EntropyCombiner
 from Entorno import Entorno
 
-<<<<<<< HEAD
-save_name = "TEB"
-=======
+
 save_name = "TD3+TEB"
->>>>>>> 9a97feb2250f730d780612d4826361557ed292d3
+
 
 # Inicializar agentes
 #agent = SAC(state_dim=2+1+2+2+20, action_dim=2, max_action=[1.0, 3.14])
@@ -80,10 +78,9 @@ def run_episode(goal=[20, 15]):
         a_r = control.plan(estado_ext)  # TEB/APF
         a_h, alfa, H = combiner.combine(np.array(a_p), np.array(a_r))
 
-<<<<<<< HEAD
+
         #next_state = env.motion([a_r[0], a_r[1]])  # Para entrenamiento individual
-=======
->>>>>>> 9a97feb2250f730d780612d4826361557ed292d3
+
         next_state = env.motion([a_h[0], a_h[1]])
         trajectory = np.vstack((trajectory, env.x))
 
