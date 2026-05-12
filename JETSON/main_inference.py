@@ -4,6 +4,8 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import time
+import imageio
 
 from RL.SAC import SAC
 from RL.TD3 import TD3
@@ -14,7 +16,7 @@ from entropy_combiner import EntropyCombiner
 from Entorno import Entorno
 
 # Nombre de pesos a cargar
-load_name = "TD3+TEB"
+load_name = "TD3+DWA"
 
 # Inicializar agente (misma config que en entrenamiento)
 #agent = SAC(state_dim=2+1+2+2+20, action_dim=2, max_action=[1.0, 3.14])
@@ -53,6 +55,10 @@ def main(goal=[20, 15]):
     step = 0
     trajectory = np.array(env.x)
 
+    # --- NUEVO: medición de tiempo y almacenamiento de frames ---
+    start_time = time.time()
+    frames = []
+
     while True:
         # Estado actual
         estado_ext = env.get_state(goal)
@@ -79,6 +85,7 @@ def main(goal=[20, 15]):
         a_h, alfa, H = combiner.combine(np.array(a_p), np.array(a_r))
 
         # Mover robot
+        #env.motion([a_p[0], a_p[1]])
         env.motion([a_h[0], a_h[1]])
         trajectory = np.vstack((trajectory, env.x))
 
@@ -92,11 +99,35 @@ def main(goal=[20, 15]):
             plt.plot(goal[0], goal[1], "xb")
             plt.plot(env.config.ob[:, 0], env.config.ob[:, 1], "ok")
             plot_robot(env.x[0], env.x[1], env.x[2], env.config.robot_radius)
+
+            # Dibujar y pausar
+            plt.draw()
             plt.pause(0.0001)
+
+            # --- NUEVO: guardar frame ---
+            fig = plt.gcf()
+            fig.canvas.draw()
+            image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
+            image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            frames.append(image)
 
         step += 1
         if step == 6000 or env.distance_to_goal(goal) <= env.config.robot_radius:
             break
+
+    # --- NUEVO: cálculo de tiempo ---
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+
+    minutes = int(elapsed_time // 60)
+    seconds = int(elapsed_time % 60)
+
+    print(f"Tiempo de inferencia: {minutes:02d}:{seconds:02d}")
+
+    # --- NUEVO: guardar GIF ---
+    if len(frames) > 0:
+        imageio.mimsave("simulacion.gif", frames, fps=30)
+        print("Simulación guardada como simulacion.gif")
 
     print("Simulación de inferencia terminada.")
 
