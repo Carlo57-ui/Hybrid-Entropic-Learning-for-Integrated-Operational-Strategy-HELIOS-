@@ -96,20 +96,62 @@ class TD3:
     # En este caso: basada en distancia al objetivo y penalización
     # por cercanía a obstáculos.
     # -------------------------------------------------------
-    def compute_reward(self, state, next_state, goal, obstacles):
+    def compute_reward(self,
+                   state,
+                   next_state,
+                   goal,
+                   obstacles,
+                   current_action,
+                   previous_action):
+
+
         pos = np.array([state[0], state[1]])
         next_pos = np.array([next_state[0], next_state[1]])
         goal_pos = np.array(goal)
-        dist_goal = np.linalg.norm(next_pos - goal_pos)
-        reward = -dist_goal  # Menor distancia = mayor recompensa
-
-        # Penalizar proximidad a obstáculos
+    
+        # r_d  progreso
+        dist_prev = np.linalg.norm(pos - goal_pos)
+        dist_curr = np.linalg.norm(next_pos - goal_pos)
+    
+        if dist_curr <= 0.5:
+            r_d = 10
+    
+        elif dist_curr < dist_prev:
+            r_d = 2
+    
+        else:
+            r_d = -1
+    
+        # r_c  colisión
+        
+        collision = False
+    
         for ox, oy in obstacles:
+    
             d = np.linalg.norm(next_pos - np.array([ox, oy]))
+    
             if d < 0.5:
-                reward -= 5.0
-            elif d < 2.0:
-                reward -= 1.0
+                collision = True
+                break
+    
+        if collision:
+            r_c = -10
+        else:
+            r_c = 5
+    
+
+        # r_s -> smoothness
+        lambda_s = 0.1
+    
+        v_i, w_i = current_action
+        v_prev, w_prev = previous_action
+    
+        r_s = lambda_s * (
+            (v_i - v_prev) ** 2 +
+            (w_i - w_prev) ** 2
+        )
+        # Recompensa total
+        reward = r_d + r_c - r_s
         return reward
 
     # ------------------ Entrenamiento ------------------
