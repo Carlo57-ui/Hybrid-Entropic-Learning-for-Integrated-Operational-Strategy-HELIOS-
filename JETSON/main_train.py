@@ -15,16 +15,15 @@ from entropy_combiner import EntropyCombiner
 from Entorno import Entorno
 
 
-save_name = "TD3+TEB"
-
+save_name = "SAC+APF"
 
 # Inicializar agentes
-#agent = SAC(state_dim=2+1+2+2+20, action_dim=2, max_action=[1.0, 3.14])
-agent = TD3(state_dim=2+1+2+2+20, action_dim=2, max_action=[1.0, 3.14])
+agent = SAC(state_dim=2+1+2+2+20, action_dim=2, max_action=[1.0, 3.14])
+#agent = TD3(state_dim=2+1+2+2+20, action_dim=2, max_action=[1.0, 3.14])
 
 # Control clásico
-control = TEBController()
-#control = APFController()
+#control = TEBController()
+control = APFController()
 #control = DWAController
 
 # Fusión híbrida
@@ -33,7 +32,7 @@ combiner = EntropyCombiner(H_umbral=0.3, k=0.5)
 # Entorno
 env = Entorno()
 
-show_animation = False   # pon True si quieres ver animación
+show_animation = True   
 EPISODES = 100
 MAX_STEPS = 6000
 
@@ -58,6 +57,7 @@ def run_episode(goal=[20, 15]):
     min_dist_obs = float("inf")
     vel_history = []
     reached_goal = False
+    prev_action = np.array([0.0, 0.0])
 
     while True:
 
@@ -79,8 +79,7 @@ def run_episode(goal=[20, 15]):
         a_h, alfa, H = combiner.combine(np.array(a_p), np.array(a_r))
 
 
-        #next_state = env.motion([a_r[0], a_r[1]])  # Para entrenamiento individual
-
+        #next_state = env.motion([a_p[0], a_p[1]])  # Para entrenamiento individual
         next_state = env.motion([a_h[0], a_h[1]])
         trajectory = np.vstack((trajectory, env.x))
 
@@ -93,9 +92,9 @@ def run_episode(goal=[20, 15]):
 
         env.update_obstacles(step)
 
-        reward = agent.compute_reward(
-            estado_ext, next_state, goal, env.config.ob
-        )
+        # reward = agent.compute_reward(estado_ext, next_state, goal, env.config.ob)
+        reward = agent.compute_reward(estado_ext,next_state,goal,env.config.ob,a_h,prev_action)
+        prev_action = np.array(a_h)
 
         done = float(env.distance_to_goal(goal)
                      <= env.config.robot_radius)
